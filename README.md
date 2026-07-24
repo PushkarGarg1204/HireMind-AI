@@ -266,9 +266,9 @@ This project is licensed under the **MIT License**.
 
 Aspiring Software Development Engineer (SDE)
 
-GitHub: https://github.com/yourusername
+GitHub: https://github.com/PushkarGarg1204
 
-LinkedIn: https://linkedin.com/in/yourprofile
+LinkedIn: https://www.linkedin.com/in/pushkar-garg-774ab1255/
 
 ---
 
