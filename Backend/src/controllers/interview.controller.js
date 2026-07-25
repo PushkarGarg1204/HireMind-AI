@@ -153,13 +153,20 @@ async function generateResumePdfController(req, res) {
       jobDescription,
       selfDescription,
     });
+    console.log("Sending PDF to client...");
 
     res.set({
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename=resume_${interviewReportId}.pdf`,
     });
 
-    return res.send(pdfBuffer);
+    console.log("Before send");
+
+    res.end(pdfBuffer);
+
+    console.log("After send");
+
+    console.log("PDF sent successfully.");
   } catch (error) {
     console.error(error);
 

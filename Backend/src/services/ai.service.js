@@ -214,7 +214,7 @@ Each preparationPlan item MUST be:
       console.log(`Attempt ${attempt}...`);
 
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-lite",
+        model: "gemini-3.1-flash-lite",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -303,7 +303,7 @@ async function generateResumePdf({ resume, selfDescription, jobDescription }) {
   const prompt = `
 You are an expert technical recruiter and professional resume writer.
 
-Create an ATS-friendly resume.
+Create a modern, ATS-friendly, one-page professional resume.
 
 Resume:
 ${resume}
@@ -316,68 +316,59 @@ ${jobDescription}
 
 IMPORTANT:
 
-technicalQuestions MUST be an array of objects.
+- Use both Resume and Self Description if available.
+- If Resume is empty, generate the resume only from Self Description.
+- If Self Description is empty, generate the resume only from Resume.
+- Tailor the resume according to the Job Description.
+- Improve wording professionally without adding false information.
+- Never invent experience, projects, companies, or education.
+- Omit sections with missing information.
+- Generate clean, ATS-friendly HTML with embedded CSS.
+- The HTML must be printable on A4 paper using Puppeteer.
+- Do not use JavaScript, external CSS, images, icons, or markdown.
 
-Each object must contain:
-- question
-- intention
-- answer
+Return ONLY valid JSON.
 
 Example:
 
-"technicalQuestions": [
-  {
-    "question": "Explain async/await.",
-    "intention": "Tests asynchronous programming.",
-    "answer": "Discuss Promises, await, and error handling."
-  }
-]
+{
+  "html": "<!DOCTYPE html><html>...</html>"
+}
 
-behavioralQuestions MUST be an array of objects.
+The "html" field must contain a complete HTML document including:
+- <!DOCTYPE html>
+- <html>
+- <head>
+- <style>
+- <body>
 
-Each object must contain:
-- question
-- intention
-- answer
-
-skillGaps MUST be an array of objects.
-
-Each object must contain:
-- skill
-- severity
-
-severity can ONLY be:
-- low
-- medium
-- high
-
-preparationPlan MUST be an array of objects.
-
-Each object must contain:
-- day
-- focus
-- tasks
-
-tasks MUST be an array of strings.
-
-Do NOT return arrays of strings.
-
-Return ONLY valid JSON.
+Do not return anything except the JSON object.
 `;
 
   console.log("Prompt length:", prompt.length);
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash-lite",
-    contents: 'Return this JSON: {"hello":"world"}',
+    model: "gemini-3.1-flash-lite",
+    contents: prompt,
     config: {
       responseMimeType: "application/json",
     },
   });
 
+  console.log("AI Response:");
+  console.log(response.text);
+
   const json = JSON.parse(response.text);
 
+  console.log(json);
+  console.log(json.html);
+
+  console.log("Generating PDF...");
+
   const pdfBuffer = await generatePdfFromHtml(json.html);
+
+  console.log("PDF generated!");
+  console.log(pdfBuffer.length);
 
   return pdfBuffer;
 }
