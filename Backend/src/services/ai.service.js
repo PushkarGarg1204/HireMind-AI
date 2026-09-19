@@ -95,8 +95,6 @@ Job Description
 
 ${jobDescription}
 
-
-
 Return ONLY valid JSON.
 
 DO NOT return markdown.
@@ -137,12 +135,6 @@ The response MUST exactly match this structure:
       "tasks": [""]
     }
   ]
-}
-
-The response MUST exactly match this structure:
-
-{
-  ...
 }
 
 Rules:
@@ -224,8 +216,6 @@ Each preparationPlan item MUST be:
       console.log(response.text);
       console.log("==========================");
 
-      console.log(response.text);
-
       const json = JSON.parse(response.text);
 
       console.log("========== AI JSON ==========");
@@ -240,7 +230,8 @@ Each preparationPlan item MUST be:
       console.log(error.message);
 
       if (attempt < 3) {
-        console.log("Waiting 3 seconds before retrying...");
+        console.log("Waiting before retrying...");
+
         const delay = attempt * 3000;
 
         await new Promise((resolve) => setTimeout(resolve, delay));
@@ -256,32 +247,57 @@ Each preparationPlan item MUST be:
 // ==============================
 
 async function generatePdfFromHtml(htmlContent) {
-  const { default: puppeteer } = await import("puppeteer");
+  // IMPORTANT:
+  // Vercel does not provide the Chrome binary required by
+  // normal Puppeteer. @sparticuz/chromium provides a
+  // Chromium binary suitable for serverless environments.
+
+  const chromium = require("@sparticuz/chromium");
+  const puppeteer = require("puppeteer-core");
+
+  console.log("Launching Chromium with @sparticuz/chromium...");
+
+  const executablePath = await chromium.executablePath();
+
+  console.log("Chromium executable path:", executablePath);
 
   const browser = await puppeteer.launch({
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath: executablePath,
     headless: true,
   });
 
-  const page = await browser.newPage();
+  try {
+    const page = await browser.newPage();
 
-  await page.setContent(htmlContent, {
-    waitUntil: "networkidle0",
-  });
+    console.log("Setting HTML content...");
 
-  const pdfBuffer = await page.pdf({
-    format: "A4",
-    printBackground: true,
-    margin: {
-      top: "20mm",
-      bottom: "20mm",
-      left: "15mm",
-      right: "15mm",
-    },
-  });
+    await page.setContent(htmlContent, {
+      waitUntil: "networkidle0",
+    });
 
-  await browser.close();
+    console.log("Generating PDF...");
 
-  return pdfBuffer;
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: {
+        top: "20mm",
+        bottom: "20mm",
+        left: "15mm",
+        right: "15mm",
+      },
+    });
+
+    console.log("PDF buffer generated:", pdfBuffer.length);
+
+    return pdfBuffer;
+  } finally {
+    await browser.close();
+
+    console.log("Chromium browser closed.");
+  }
 }
 
 // ==============================
@@ -292,7 +308,7 @@ const resumePdfSchema = z.object({
   html: z
     .string()
     .describe(
-      "Complete HTML document that can be converted directly into a professional PDF resume.",
+      "Complete HTML document that can be converted directly into a professional PDF.",
     ),
 });
 
@@ -306,14 +322,23 @@ You are an expert technical recruiter and professional resume writer.
 
 Create a modern, ATS-friendly, one-page professional resume.
 
-Resume:
-${resume}
+========================
+Resume
+========================
 
-Self Description:
-${selfDescription}
+${resume || ""}
 
-Job Description:
-${jobDescription}
+========================
+Self Description
+========================
+
+${selfDescription || ""}
+
+========================
+Job Description
+========================
+
+${jobDescription || ""}
 
 IMPORTANT:
 
@@ -326,52 +351,121 @@ IMPORTANT:
 - Omit sections with missing information.
 - Generate clean, ATS-friendly HTML with embedded CSS.
 - The HTML must be printable on A4 paper using Puppeteer.
-- Do not use JavaScript, external CSS, images, icons, or markdown.
+- Do not use JavaScript.
+- Do not use external CSS.
+- Do not use images.
+- Do not use icons.
+- Do not use markdown.
 
 Return ONLY valid JSON.
 
-Example:
+The JSON must have exactly this structure:
 
 {
   "html": "<!DOCTYPE html><html>...</html>"
 }
 
 The "html" field must contain a complete HTML document including:
+
 - <!DOCTYPE html>
 - <html>
 - <head>
 - <style>
 - <body>
 
+The HTML should contain a professional one-page resume.
+
 Do not return anything except the JSON object.
 `;
 
+  console.log("========== RESUME PDF ==========");
   console.log("Prompt length:", prompt.length);
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3.1-flash-lite",
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-    },
-  });
+  try {
+    // ==============================
+    // STEP 1: Call Gemini
+    // ==============================
 
-  console.log("AI Response:");
-  console.log(response.text);
+    console.log("1. Calling Gemini...");
 
-  const json = JSON.parse(response.text);
+    const response = await ai.models.generateContent({
+      model: "gemini-3.1-flash-lite",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+      },
+    });
 
-  console.log(json);
-  console.log(json.html);
+    console.log("2. Gemini response received.");
 
-  console.log("Generating PDF...");
+    console.log("========== RAW AI RESPONSE ==========");
 
-  const pdfBuffer = await generatePdfFromHtml(json.html);
+    console.log(response.text);
 
-  console.log("PDF generated!");
-  console.log(pdfBuffer.length);
+    console.log("=====================================");
 
-  return pdfBuffer;
+    // ==============================
+    // STEP 2: Parse JSON
+    // ==============================
+
+    console.log("3. Parsing JSON...");
+
+    const json = JSON.parse(response.text);
+
+    console.log("4. JSON parsed successfully.");
+
+    // ==============================
+    // STEP 3: Validate HTML
+    // ==============================
+
+    console.log("HTML exists:", !!json.html);
+
+    console.log("HTML type:", typeof json.html);
+
+    console.log("HTML length:", json.html?.length);
+
+    if (!json.html || typeof json.html !== "string") {
+      throw new Error("Gemini did not return valid HTML in the 'html' field.");
+    }
+
+    console.log("========== HTML PREVIEW ==========");
+
+    console.log(json.html.substring(0, 500));
+
+    console.log("==================================");
+
+    // ==============================
+    // STEP 4: Generate PDF
+    // ==============================
+
+    console.log("5. Starting PDF generation...");
+
+    const pdfBuffer = await generatePdfFromHtml(json.html);
+
+    console.log("6. PDF generated successfully!");
+
+    console.log("PDF size:", pdfBuffer.length);
+
+    if (!pdfBuffer || pdfBuffer.length === 0) {
+      throw new Error("Generated PDF buffer is empty.");
+    }
+
+    console.log("========== RESUME PDF COMPLETE ==========");
+
+    return pdfBuffer;
+  } catch (error) {
+    console.error("========== RESUME PDF ERROR ==========");
+
+    console.error(error);
+
+    console.error(error.message);
+
+    console.error(error.stack);
+
+    console.error("======================================");
+
+    throw error;
+  }
 }
 
 // ==============================

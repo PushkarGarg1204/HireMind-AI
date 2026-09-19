@@ -13,6 +13,7 @@
   "description": "",
   "dependencies": {
     "@google/genai": "^2.10.0",
+    "@sparticuz/chromium": "^147.0.0",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
@@ -22,7 +23,7 @@
     "mongoose": "^9.7.3",
     "multer": "^2.2.0",
     "pdf-parse": "^1.1.1",
-    "puppeteer": "^25.3.0",
+    "puppeteer-core": "^25.11.0",
     "zod": "^4.4.3",
     "zod-to-json-schema": "^3.25.2"
   }
