@@ -253,7 +253,7 @@ async function generatePdfFromHtml(htmlContent) {
   // Chromium binary suitable for serverless environments.
 
   const chromium = require("@sparticuz/chromium");
-  const puppeteer = require("puppeteer-core");
+  const puppeteer = await import("puppeteer-core");
 
   console.log("Launching Chromium with @sparticuz/chromium...");
 
@@ -261,7 +261,7 @@ async function generatePdfFromHtml(htmlContent) {
 
   console.log("Chromium executable path:", executablePath);
 
-  const browser = await puppeteer.launch({
+  const browser = await puppeteer.default.launch({
     args: chromium.args,
     defaultViewport: chromium.defaultViewport,
     executablePath: executablePath,
